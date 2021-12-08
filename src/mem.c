@@ -22,6 +22,7 @@ void init_mem(void) {
 	memset(_mem_stat, 0, sizeof(*_mem_stat) * NUM_PAGES);
 	memset(_ram, 0, sizeof(BYTE) * RAM_SIZE);
 	pthread_mutex_init(&mem_lock, NULL);
+	pthread_mutex_init(&r_lock, NULL);
 }
 
 /* get offset of the virtual address */

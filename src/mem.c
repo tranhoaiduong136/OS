@@ -16,6 +16,7 @@ static struct {
 } _mem_stat [NUM_PAGES];
 
 static pthread_mutex_t mem_lock;
+static pthread_mutex_t r_lock;
 
 void init_mem(void) {
 	memset(_mem_stat, 0, sizeof(*_mem_stat) * NUM_PAGES);
@@ -109,8 +110,8 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 	 * byte in the allocated memory region to [ret_mem].
 	 * */
 
-	uint32_t num_pages = (size % PAGE_SIZE) ? size / PAGE_SIZE :
-		size / PAGE_SIZE + 1; // Number of pages we will use
+	uint32_t num_pages = (size % PAGE_SIZE) ? size / PAGE_SIZE + 1 :
+		size / PAGE_SIZE; // Number of pages we will use
 	int mem_avail = 0; // We could allocate new memory region or not?
 	int pages_avail = 0;
 
@@ -266,6 +267,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 }
 
 int read_mem(addr_t address, struct pcb_t * proc, BYTE * data) {
+	pthread_mutex_lock(&r_lock);
 	addr_t physical_addr;
 	if (translate(address, &physical_addr, proc)) {
 		*data = _ram[physical_addr];
@@ -273,9 +275,11 @@ int read_mem(addr_t address, struct pcb_t * proc, BYTE * data) {
 	}else{
 		return 1;
 	}
+	pthread_mutex_unlock(&r_lock);
 }
 
 int write_mem(addr_t address, struct pcb_t * proc, BYTE data) {
+	pthread_mutex_lock(&r_lock);
 	addr_t physical_addr;
 	if (translate(address, &physical_addr, proc)) {
 		_ram[physical_addr] = data;
@@ -283,6 +287,7 @@ int write_mem(addr_t address, struct pcb_t * proc, BYTE data) {
 	}else{
 		return 1;
 	}
+	pthread_mutex_unlock(&r_lock);
 }
 
 void dump(void) {
